@@ -8,6 +8,7 @@ from pathlib import Path
 
 from apscheduler.schedulers.blocking import BlockingScheduler
 from dotenv import load_dotenv
+from testeplanilha import atualizar_banco
 
 BASE_DIR = Path(__file__).resolve().parent
 ENV_FILE = BASE_DIR / ".env"
@@ -201,6 +202,18 @@ def processar_modelo(modelo, estado, enviar_mudancas):
     return mensagem if not enviar_mudancas else None
 
 
+def sincronizar():
+    try:
+        print(f"[{datetime.now():%H:%M}] Atualizando planilha...")
+        total = atualizar_banco()
+        print(f"[{datetime.now():%H:%M}] {total} registros importados.")
+    except Exception as e:
+        print(f"Erro ao atualizar planilha: {e}")
+        return
+
+    analisar()
+
+
 def analisar():
     estado = carregar_estado()
 
@@ -233,17 +246,19 @@ def main():
     BOT_TOKEN, CHAT_ID = carregar_config()
 
     if not DB_PATH.exists():
-        raise SystemExit(
-            f"Banco {DB_PATH.name} não encontrado. "
-            "Rode testeplanilha.py primeiro para importar os dados."
-        )
+        print("Banco não encontrado. Importando planilha...")
+        atualizar_banco()
 
     scheduler = BlockingScheduler()
 
-    scheduler.add_job(analisar, "interval", minutes=5)
-    scheduler.add_job(resumo, "cron", hour="8,12,18")
+    scheduler.add_job(sincronizar, "interval", hours=1)
+    scheduler.add_job(resumo, "interval", hours=2)
 
-    enviar("🤖 Bot de separação iniciado. Monitorando 3 modelos.")
+    enviar("🤖 Bot de separação iniciado.\n⏱ Atualiza planilha a cada 1h\n📨 Envia status a cada 2h")
+    try:
+        atualizar_banco()
+    except Exception as e:
+        print(f"Erro ao importar planilha: {e}")
     resumo()
     print("Bot iniciado...")
 

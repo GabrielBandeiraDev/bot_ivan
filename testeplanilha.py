@@ -56,9 +56,7 @@ def baixar_aba(nome, gid):
     return df[COLUNAS]
 
 
-def main():
-    print("Baixando planilhas...")
-
+def atualizar_banco():
     frames = []
     for aba in ABAS:
         df = baixar_aba(aba["nome"], aba["gid"])
@@ -72,7 +70,13 @@ def main():
     conn.commit()
     conn.close()
 
-    print(f"\nBanco atualizado com {len(dados)} registros de {len(ABAS)} abas.")
+    return len(dados)
+
+
+def main():
+    print("Baixando planilhas...")
+    total = atualizar_banco()
+    print(f"\nBanco atualizado com {total} registros de {len(ABAS)} abas.")
 
 
 if __name__ == "__main__":
